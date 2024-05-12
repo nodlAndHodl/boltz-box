@@ -1,20 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { ClnNodeServiceService } from './cln-node-service/cln-node-service.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class LnService {
-  getLnAddress(pubkey: string, amount: number) {
-    console.log(pubkey, amount);
+  minAmount: number;
+  maxAmount: number;
+  constructor(
+    private readonly clnService: ClnNodeServiceService,
+    private readonly configService: ConfigService,
+  ) {
+    this.minAmount = this.configService.get<number>('MIN_AMOUNT');
+    this.maxAmount = this.configService.get<number>('MAX_AMOUNT');
+  }
+
+  async getLnAddress(pubkey: string, amount: number) {
+    if (amount < this.minAmount || amount > this.maxAmount) {
+      return { status: 'ERROR', reason: 'AmountOutOfRange' };
+    }
     try {
+      const invoice = await this.clnService.createInvoice(amount);
       return {
-        pr: 'lnbcrt100n1pnrugmkpp5ycpuu8zdl95lqym7smls7vs4chy92jwf5gg38wldvgxsxaxqcayshp57hrfhfcdj4yxqpgaut4uwn5x8hr62a5ydgdqusr45en9dyzyh55scqzzsxqyz5vqsp5znr3grxqltqjr7v3xz02a5jkmzgesra9d4f92ttg0na25rhjqwmq9qyyssq8a2cvfdrsa9kmv4kypwezke6hng833dwu8gtt6um6rqwe4a8tp45deu5yqhucqq2g2zwev28jplgxdfck0nsna5efeeje4fvx8qlh3cqrcczqw',
+        pr: invoice.bolt11,
         successAction: {
           tag: 'message',
-          message: "Thank you! You're awesome! <3",
+          message: this.configService.get<string>('MESSAGE'),
         },
         disposable: false,
         routes: [],
       };
-    } catch (e) {
+    } catch (ex) {
+      console.error('An exception occured', ex.message);
       return { status: 'ERROR', reason: 'ErrorCreatingInvoice' };
     }
   }

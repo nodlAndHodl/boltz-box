@@ -42,6 +42,9 @@ import { ConfigService } from '@nestjs/config';
               },
               protoPath: join(__dirname, './proto/node.proto'),
               credentials,
+              loader: {
+                keepCase: true,
+              },
             },
           };
         },
